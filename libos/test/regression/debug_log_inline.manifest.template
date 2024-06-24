@@ -5,7 +5,7 @@ libos.entrypoint = "{{ entrypoint }}"
 
 loader.env.LD_LIBRARY_PATH = "/lib"
 
-loader.log_level = "debug"
+loader.log_level = "trace"
 
 fs.mounts = [
   { path = "/lib", uri = "file:{{ gramine.runtimedir(libc) }}" },

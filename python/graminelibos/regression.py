@@ -222,6 +222,11 @@ class RegressionTestCase(unittest.TestCase):
 
         cmd = [*prefix, fspath(self.loader_path), fspath(self.libpal_path), 'init', *args]
         _returncode, stdout, stderr = run_command(cmd, timeout=timeout, **kwds)
+
+        # DEBUG: extract log-file into a test-named trace file
+        with open(f'{self.id()}.trace', 'w') as file:
+            file.write(stderr)
+	
         return stdout, stderr
 
     @classmethod

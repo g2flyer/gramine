@@ -195,6 +195,10 @@ def test_ltp(cmd, section):
 
     returncode, stdout, _stderr = run_command(full_cmd, timeout=timeout, can_fail=True)
 
+    filename = "-".join(cmd) + ".trace"
+    with open(f'{filename}', 'w') as file:
+        file.write(_stderr)
+
     # Parse output regardless of whether `must_pass` is specified: unfortunately some tests
     # do not exit with non-zero code when failing, because they rely on `MAP_SHARED` (which
     # we do not support correctly) for collecting test results.

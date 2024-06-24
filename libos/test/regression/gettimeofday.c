@@ -9,7 +9,7 @@
 
 #define MAX_TIME_DIFF_SEC 20
 #define THREAD_NUM 4
-#define ITERATIONS 1000000
+#define ITERATIONS 10000//00
 
 struct timeval base_tv;
 

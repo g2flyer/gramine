@@ -2,6 +2,8 @@
 
 {% set entrypoint = "helloworld" -%}
 
+loader.log_level = "trace"
+
 loader.entrypoint = "file:{{ gramine.libos }}"
 libos.entrypoint = "{{ entrypoint }}"
 

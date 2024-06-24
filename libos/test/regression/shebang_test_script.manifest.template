@@ -1,6 +1,8 @@
 loader.entrypoint = "file:{{ gramine.libos }}"
 libos.entrypoint = "shebang_test_script.sh"
 
+loader.log_level = "trace"
+
 loader.env.LD_LIBRARY_PATH = "/lib:{{ arch_libdir }}:/usr/{{ arch_libdir }}"
 
 fs.mounts = [
