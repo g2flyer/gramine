@@ -307,14 +307,34 @@ class LockTrace(object):
         print("\nLock instances dependences:\n-------------------------------------\n")
         detect_cycles(self.lock_instances.instance_dependencies)
 	# find_all_cycles can be very slow and memory intensive, so do only on classes and not on instances
+
         print("\nLock class dependencies:\n-------------------------------------\n")
         pprint(list(self.lock_classes.class_dependencies.edges()))
         find_all_cycles(self.lock_classes.class_dependencies)
-        print("\nLock class dependencies (guessed or no-thread locks removed) :\n-------------------------------------\n")
+
+        print("\nLock class dependencies (guessed and/or no-thread locks removed) :\n-------------------------------------\n")
+        excluded_no_thread_nodes = set(i.lock_class for i in self.warning_no_thread)
+        sanitized_no_thread_class_dependencies = self.lock_classes.class_dependencies.copy()
+        sanitized_no_thread_class_dependencies.remove_nodes_from(excluded_no_thread_nodes)
+        print("excluded no_thread nodes=")
+        pprint(excluded_no_thread_nodes)
+        print("resulting dependencies=")
+        pprint(list(sanitized_no_thread_class_dependencies.edges()))
+        find_all_cycles(sanitized_no_thread_class_dependencies)
+
+        excluded_process_guess_nodes = set(i.lock_class for i in self.lock_instances.instances.values() for bi in self.warning_process_guess if i.id.startswith(bi))
+        sanitized_process_guess_class_dependencies = self.lock_classes.class_dependencies.copy()
+        sanitized_process_guess_class_dependencies.remove_nodes_from(excluded_process_guess_nodes)
+        print("\nexcluded process_guess nodes=")
+        pprint(excluded_process_guess_nodes)
+        print("resulting dependencies=")
+        pprint(list(sanitized_process_guess_class_dependencies.edges()))
+        find_all_cycles(sanitized_process_guess_class_dependencies)
+
+        excluded_nodes = excluded_no_thread_nodes.union(excluded_process_guess_nodes)
         sanitized_class_dependencies = self.lock_classes.class_dependencies.copy()
-        excluded_nodes = set(i.lock_class for i in self.warning_no_thread).union(set(i.lock_class for i in self.lock_instances.instances.values() for bi in self.warning_process_guess if i.id.startswith(bi)))
         sanitized_class_dependencies.remove_nodes_from(excluded_nodes)
-        print("excluded nodes=")
+        print("\nexcluded nodes=")
         pprint(excluded_nodes)
         print("resulting dependencies=")
         pprint(list(sanitized_class_dependencies.edges()))
@@ -341,12 +361,28 @@ if __name__ == '__main__':
     #   nx.compose_all([trace.lock_classes.class_dependencies for trace in lock_traces]) 
     # or alike but have to build a new graph (just with names)
     total_class_dependencies = nx.DiGraph()
+    total_sanitized_no_thread_class_dependencies = nx.DiGraph()
+    total_sanitized_process_guess_class_dependencies = nx.DiGraph()
     total_sanitized_class_dependencies = nx.DiGraph()
+
     for trace in lock_traces:
         for edge in trace.lock_classes.class_dependencies.edges():
             total_class_dependencies.add_edge(edge[0].name, edge[1].name)
+
+        sanitized_no_thread_class_dependencies = trace.lock_classes.class_dependencies.copy()
+        excluded_no_thread_nodes = set(i.lock_class for i in trace.warning_no_thread)
+        sanitized_no_thread_class_dependencies.remove_nodes_from(excluded_no_thread_nodes)
+        for edge in sanitized_no_thread_class_dependencies.edges():
+            total_sanitized_no_thread_class_dependencies.add_edge(edge[0].name, edge[1].name)
+
+        sanitized_process_guess_class_dependencies = trace.lock_classes.class_dependencies.copy()
+        excluded_process_guess_nodes = set(i.lock_class for i in trace.lock_instances.instances.values() for bi in trace.warning_process_guess if i.id.startswith(bi))
+        sanitized_process_guess_class_dependencies.remove_nodes_from(excluded_process_guess_nodes)
+        for edge in sanitized_process_guess_class_dependencies.edges():
+            total_sanitized_process_guess_class_dependencies.add_edge(edge[0].name, edge[1].name)
+
         sanitized_class_dependencies = trace.lock_classes.class_dependencies.copy()
-        excluded_nodes = set(i.lock_class for i in trace.warning_no_thread).union(set(i.lock_class for i in trace.lock_instances.instances.values() for bi in trace.warning_process_guess if i.id.startswith(bi)))
+        excluded_nodes = excluded_no_thread_nodes.union(excluded_process_guess_nodes)
         sanitized_class_dependencies.remove_nodes_from(excluded_nodes)
         for edge in sanitized_class_dependencies.edges():
             total_sanitized_class_dependencies.add_edge(edge[0].name, edge[1].name)
@@ -360,6 +396,13 @@ if __name__ == '__main__':
     find_all_cycles(total_class_dependencies)
     find_partial_order(total_class_dependencies)
     print("\nTotal Lock class dependencies (guessed or no-thread locks removed):\n-------------------------------------\n")
+    print("- fno-thread nodes excluded\n")
+    pprint(list(total_sanitized_no_thread_class_dependencies.edges()))
+    draw_graph(total_sanitized_no_thread_class_dependencies, "lock_analysis.sanitized-no-thread-class-dependencies")
+    print("\n- process-guess nodes excluded\n")
+    pprint(list(total_sanitized_process_guess_class_dependencies.edges()))
+    draw_graph(total_sanitized_process_guess_class_dependencies, "lock_analysis.sanitized-process-guess-class-dependencies")
+    print("\n- both excluded\n")
     pprint(list(total_sanitized_class_dependencies.edges()))
     draw_graph(total_sanitized_class_dependencies, "lock_analysis.sanitized-class-dependencies")
     print("\nLock class dependencies (guessed or no-thread locks removed) and (if possible) partial order:\n-------------------------------------\n")
