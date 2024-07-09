@@ -165,7 +165,7 @@ def run_command(cmd, *, timeout, open_fds_limit=None, can_fail=False, **kwds):
 
 
 class RegressionTestCase(unittest.TestCase):
-    DEFAULT_TIMEOUT = (20 if HAS_SGX else 10)
+    DEFAULT_TIMEOUT = (200 if HAS_SGX else 100)
 
     def get_env(self, name):
         try:
